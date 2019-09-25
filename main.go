@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"sort"
+	"strconv"
+	"strings"
 
 	"gopkg.in/yaml.v2"
 )
@@ -27,9 +30,57 @@ func main() {
 		os.Exit(1)
 	}
 
-	for i, choice := range choices {
-		fmt.Printf("%d: %s\n", i, choice)
+	selections := make([]string, len(choices))
+
+	keyset := make(map[string]int)
+	for _, c := range choices {
+		for k, v := range c.tags {
+			if keyset[k] < len(v) {
+				keyset[k] = len(v)
+			}
+		}
 	}
+	keylist := make([]string, 0, len(keyset))
+	for k := range keyset {
+		keylist = append(keylist, k)
+	}
+	sort.Slice(keylist, func(i, j int) bool {
+		return keyset[keylist[i]] < keyset[keylist[j]]
+	})
+
+	var formatBuilder strings.Builder
+	formatBuilder.WriteString("%d: ")
+	for i := range keylist {
+		fmt.Fprintf(&formatBuilder, "%s:%%-%ds ", keylist[i], keyset[keylist[i]])
+	}
+
+	for i, choice := range choices {
+		args := make([]interface{}, len(keyset)+1)
+		args[0] = i
+		for i := range keylist {
+			args[i+1] = choice.tags[keylist[i]]
+		}
+		selections[i] = fmt.Sprintf(formatBuilder.String(), args...)
+	}
+
+	choice, ok, err := fzf(selections, ">")
+	if err != nil {
+		log.Fatalf("could not fzf: %v", err)
+	}
+	if !ok {
+		return
+	}
+
+	parts := strings.Split(choice, ":")
+	if len(parts) < 2 {
+		log.Fatalf("could not split choice into parts")
+	}
+	choiceIdx, err := strconv.Atoi(parts[0])
+	if err != nil {
+		log.Fatalf("could not parse choice index: %v", err)
+	}
+
+	fmt.Println(choices[choiceIdx].connStr)
 }
 
 type keyval struct {
@@ -111,11 +162,6 @@ func buildChoices(choicesKeyVals [][]keyval) ([]choice, error) {
 		if !ok {
 			return nil, errors.New("database missing")
 		}
-
-		delete(m, "username")
-		delete(m, "password")
-		delete(m, "endpoint")
-		delete(m, "database")
 
 		choices = append(choices, choice{
 			connStr: fmt.Sprintf("postgres://%s:%s@%s/%s", username, password, endpoint, database),
