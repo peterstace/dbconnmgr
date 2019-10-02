@@ -1,4 +1,4 @@
-module github.com/peterstace/dbc
+module github.com/peterstace/dbconnmgr
 
 go 1.13
 
