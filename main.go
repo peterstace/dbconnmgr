@@ -90,7 +90,7 @@ type keyval struct {
 func depthFirstWalk(node map[interface{}]interface{}, kvs []keyval) ([][]keyval, error) {
 	var children []interface{}
 	for key, val := range node {
-		if key == "children" {
+		if key == "sum" {
 			var ok bool
 			children, ok = val.([]interface{})
 			if !ok {
