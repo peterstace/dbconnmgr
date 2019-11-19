@@ -16,6 +16,55 @@ type ConnDetails struct {
 	Labels   map[string]string
 }
 
+func Merge(x, y ConnDetails) (ConnDetails, error) {
+	var m ConnDetails
+
+	mergeStr := func(s1, s2 string) (string, error) {
+		if s1 != "" && s2 != "" {
+			return "", fmt.Errorf("duplicated: %s and %s", s1, s2)
+		}
+		if s1 == "" {
+			return s2, nil
+		}
+		return s1, nil
+	}
+
+	var err error
+	m.Username, err = mergeStr(x.Username, y.Username)
+	if err != nil {
+		return m, fmt.Errorf("merging usernames: %v", err)
+	}
+	m.Password, err = mergeStr(x.Password, y.Password)
+	if err != nil {
+		return m, fmt.Errorf("merging passwords: %v", err)
+	}
+	m.Endpoint, err = mergeStr(x.Endpoint, y.Endpoint)
+	if err != nil {
+		return m, fmt.Errorf("merging endpoints: %v", err)
+	}
+	m.Database, err = mergeStr(x.Database, y.Database)
+	if err != nil {
+		return m, fmt.Errorf("merging databases: %v", err)
+	}
+	for _, labels := range []struct {
+		setA, setB map[string]string
+	}{
+		{x.Labels, y.Labels},
+		{y.Labels, x.Labels},
+	} {
+		for k, v := range labels.setA {
+			if m.Labels == nil {
+				m.Labels = make(map[string]string)
+			}
+			m.Labels[k], err = mergeStr(v, labels.setB[k])
+			if err != nil {
+				return m, fmt.Errorf("merging label %s: %v", k, err)
+			}
+		}
+	}
+	return m, nil
+}
+
 type Node struct {
 	ConnDetails
 	SumChildren     []Node
@@ -69,6 +118,7 @@ func newNode(m map[interface{}]interface{}) (Node, error) {
 			}
 			if len(n.SumChildren) != 0 || len(n.ProductChildren) != 0 {
 				return Node{}, errors.New("multiple sets of children defined")
+				// TODO: don't worry about this? Handled by flatten.
 			}
 			for _, c := range vAsChildren {
 				childAsMap, childIsMap := c.(map[interface{}]interface{})
@@ -99,7 +149,54 @@ func newNode(m map[interface{}]interface{}) (Node, error) {
 	return n, nil
 }
 
-// TODO: no error?
 func (n Node) Flatten() ([]ConnDetails, error) {
-	return []ConnDetails{n.ConnDetails}, nil
+	switch {
+	case len(n.ProductChildren) > 0 && len(n.SumChildren) > 0:
+		return nil, errors.New("multiple sets of children defined")
+	case len(n.ProductChildren) == 0 && len(n.SumChildren) == 0:
+		return []ConnDetails{n.ConnDetails}, nil
+	case len(n.ProductChildren) > 0:
+		var multiplicands [][]ConnDetails
+		for _, child := range n.ProductChildren {
+			childDetails, err := child.Flatten()
+			if err != nil {
+				return nil, fmt.Errorf("could not flatten child: %v", err)
+			}
+			multiplicands = append(multiplicands, childDetails)
+		}
+		product := []ConnDetails{n.ConnDetails}
+		for _, multiplicand := range multiplicands {
+			var newProduct []ConnDetails
+			for i := range product {
+				for j := range multiplicand {
+					merged, err := Merge(product[i], multiplicand[j])
+					if err != nil {
+						return nil, fmt.Errorf("could not merge children: %v", err)
+					}
+					newProduct = append(newProduct, merged)
+				}
+			}
+			product = newProduct
+		}
+		return product, nil
+	case len(n.SumChildren) > 0:
+		var allDetails []ConnDetails
+		for _, child := range n.SumChildren {
+			childDetails, err := child.Flatten()
+			if err != nil {
+				return nil, fmt.Errorf("could not flatten child: %v", err)
+			}
+			allDetails = append(allDetails, childDetails...)
+		}
+		for i := range allDetails {
+			merged, err := Merge(allDetails[i], n.ConnDetails)
+			if err != nil {
+				return nil, fmt.Errorf("could not merge connection details: %v", err)
+			}
+			allDetails[i] = merged
+		}
+		return allDetails, nil
+	default:
+		panic(false)
+	}
 }

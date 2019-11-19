@@ -14,16 +14,16 @@ func TestParseTree(t *testing.T) {
 	}{
 		{
 			input: `
-				username: u
-				password: p
-				endpoint: e
-				database: d
-				label1: foo
-				label2: bar
-				sum:
-					- username: A
-					- username: B
-				`,
+                username: u
+                password: p
+                endpoint: e
+                database: d
+                label1: foo
+                label2: bar
+                sum:
+                    - username: A
+                    - username: B
+                `,
 			output: Node{
 				ConnDetails: ConnDetails{
 					Username: "u",
@@ -43,10 +43,10 @@ func TestParseTree(t *testing.T) {
 		},
 		{
 			input: `
-				product:
-					- username: A
-					- username: B
-				`,
+                product:
+                    - username: A
+                    - username: B
+                `,
 			output: Node{
 				ProductChildren: []Node{
 					Node{ConnDetails: ConnDetails{Username: "A"}},
@@ -70,14 +70,14 @@ func TestParseTree(t *testing.T) {
 
 func TestIllegalTree(t *testing.T) {
 	_, err := ParseTree(strings.NewReader(strings.ReplaceAll(`
-		username: u
-		password: p
-		sum:
-			- username: u1
-			  password: p1
-		product:
-			- username: u2
-			  password: p2`, "\t", " ")))
+        username: u
+        password: p
+        sum:
+            - username: u1
+              password: p1
+        product:
+            - username: u2
+              password: p2`, "\t", " ")))
 	if err == nil {
 		t.Error("expected error but got nil")
 	}
@@ -90,12 +90,12 @@ func TestFlatten(t *testing.T) {
 	}{
 		{
 			input: `
-				username: user
-				password: pass
-				endpoint: end
-				database: db
-				label1: foo
-				label2: bar`,
+                username: user
+                password: pass
+                endpoint: end
+                database: db
+                label1: foo
+                label2: bar`,
 			output: []ConnDetails{
 				{
 					Username: "user",
@@ -111,81 +111,94 @@ func TestFlatten(t *testing.T) {
 		},
 		{
 			input: `
-				endpoint: end
-				sum:
-					- username: user1
-					  password: pass1
-					  sum:
-					  	- db: db1
-					  	- db: db2
-					- username: user2
-					  password: pass2
-					  sum:
-					  	- db: db1
-					  	- db: db2`,
+                endpoint: end
+                sum:
+                    - username: user1
+                      password: pass1
+                      sum:
+                          - database: db1
+                            k1: v1
+                          - database: db2
+                            k2: v2
+                    - username: user2
+                      password: pass2
+                      sum:
+                          - database: db1
+                            k3: v3
+                          - database: db2
+                            k4: v4`,
 			output: []ConnDetails{
 				{
 					Username: "user1",
 					Password: "pass1",
 					Endpoint: "end",
 					Database: "db1",
+					Labels:   map[string]string{"k1": "v1"},
 				},
 				{
 					Username: "user1",
 					Password: "pass1",
 					Endpoint: "end",
 					Database: "db2",
+					Labels:   map[string]string{"k2": "v2"},
 				},
 				{
 					Username: "user2",
 					Password: "pass2",
 					Endpoint: "end",
 					Database: "db1",
+					Labels:   map[string]string{"k3": "v3"},
 				},
 				{
 					Username: "user2",
 					Password: "pass2",
 					Endpoint: "end",
 					Database: "db2",
+					Labels:   map[string]string{"k4": "v4"},
 				},
 			},
 		},
 		{
 			input: `
-				endpoint: end
-				product:
-				  - sum:
-				    - username: user1
-				      password: pass1
-				    - username: user2
-				      password: pass2
-				  - sum:
-				    - db: db1
-				    - db: db2`,
+                endpoint: end
+                product:
+                  - sum:
+                    - username: user1
+                      password: pass1
+                    - username: user2
+                      password: pass2
+                  - sum:
+                    - database: db1
+                    - database: db2
+                  - key: val`,
 			output: []ConnDetails{
 				{
 					Username: "user1",
 					Password: "pass1",
 					Endpoint: "end",
 					Database: "db1",
+					Labels:   map[string]string{"key": "val"},
 				},
 				{
 					Username: "user1",
 					Password: "pass1",
 					Endpoint: "end",
 					Database: "db2",
+					Labels:   map[string]string{"key": "val"},
 				},
 				{
 					Username: "user2",
 					Password: "pass2",
 					Endpoint: "end",
 					Database: "db1",
+					Labels:   map[string]string{"key": "val"},
 				},
 				{
 					Username: "user2",
 					Password: "pass2",
 					Endpoint: "end",
 					Database: "db2",
+					Labels:   map[string]string{"key": "val"},
 				},
 			},
 		},
