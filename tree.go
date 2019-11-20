@@ -16,6 +16,16 @@ type ConnDetails struct {
 	Labels   map[string]string
 }
 
+func (d ConnDetails) ConnectionString() string {
+	return fmt.Sprintf(
+		"postgres://%s:%s@%s/%s",
+		d.Username,
+		d.Password,
+		d.Endpoint,
+		d.Database,
+	)
+}
+
 func Merge(x, y ConnDetails) (ConnDetails, error) {
 	var m ConnDetails
 
@@ -149,7 +159,7 @@ func newNode(m map[interface{}]interface{}) (Node, error) {
 	return n, nil
 }
 
-func (n Node) Flatten() ([]ConnDetails, error) {
+func (n Node) Flatten() (ConnList, error) {
 	switch {
 	case len(n.ProductChildren) > 0 && len(n.SumChildren) > 0:
 		return nil, errors.New("multiple sets of children defined")
