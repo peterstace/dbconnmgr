@@ -71,7 +71,7 @@ func TestParseTree(t *testing.T) {
 func TestFlatten(t *testing.T) {
 	for i, tt := range []struct {
 		input  string
-		output []ConnDetails
+		output ConnList
 	}{
 		{
 			input: `
@@ -81,7 +81,7 @@ func TestFlatten(t *testing.T) {
                 database: db
                 label1: foo
                 label2: bar`,
-			output: []ConnDetails{
+			output: ConnList{
 				{
 					Username: "user",
 					Password: "pass",
@@ -112,7 +112,7 @@ func TestFlatten(t *testing.T) {
                             k3: v3
                           - database: db2
                             k4: v4`,
-			output: []ConnDetails{
+			output: ConnList{
 				{
 					Username: "user1",
 					Password: "pass1",
@@ -156,7 +156,7 @@ func TestFlatten(t *testing.T) {
                     - database: db1
                     - database: db2
                   - key: val`,
-			output: []ConnDetails{
+			output: ConnList{
 				{
 					Username: "user1",
 					Password: "pass1",
@@ -199,7 +199,7 @@ func TestFlatten(t *testing.T) {
 				t.Fatal(err)
 			}
 			if !reflect.DeepEqual(got, tt.output) {
-				t.Errorf("\ngot:  %v\nwant: %v\n", got, tt.output)
+				t.Errorf("\ngot:  %#v\nwant: %#v\n", got, tt.output)
 			}
 		})
 	}
