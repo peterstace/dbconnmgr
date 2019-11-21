@@ -1,6 +1,9 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"sort"
+)
 
 func max(a, b int) int {
 	if a < b {
@@ -36,11 +39,30 @@ func (c ConnList) Selections() []string {
 		keys = append(keys, keywidth{key, width})
 	}
 
-	// TODO: sort the keys array
+	sort.Slice(keys, func(i, j int) bool {
+		var rank1, rank2 int
+		switch keys[i].key {
+		case "db":
+			rank1 = -2
+		case "uname":
+			rank1 = -1
+		default:
+			rank1 = keys[i].width
+		}
+		switch keys[j].key {
+		case "db":
+			rank2 = -2
+		case "uname":
+			rank2 = -1
+		default:
+			rank2 = keys[j].width
+		}
+		return rank1 < rank2
+	})
 
 	var format string
 	for _, kw := range keys {
-		format += fmt.Sprintf("%s=%%-%ds ", kw.key, kw.width)
+		format += fmt.Sprintf("%s:%%-%ds ", kw.key, kw.width)
 	}
 
 	out := make([]string, len(c))
