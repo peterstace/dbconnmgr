@@ -59,10 +59,6 @@ func newNode(m map[interface{}]interface{}) (Node, error) {
 			if !vIsChildren {
 				return Node{}, fmt.Errorf("sum or product is non-array: %T", v)
 			}
-			if len(n.SumChildren) != 0 || len(n.ProductChildren) != 0 {
-				return Node{}, errors.New("multiple sets of children defined")
-				// TODO: don't worry about this? Handled by flatten.
-			}
 			for _, c := range vAsChildren {
 				childAsMap, childIsMap := c.(map[interface{}]interface{})
 				if !childIsMap {

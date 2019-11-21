@@ -68,21 +68,6 @@ func TestParseTree(t *testing.T) {
 	}
 }
 
-func TestIllegalTree(t *testing.T) {
-	_, err := ParseTree(strings.NewReader(strings.ReplaceAll(`
-        username: u
-        password: p
-        sum:
-            - username: u1
-              password: p1
-        product:
-            - username: u2
-              password: p2`, "\t", " ")))
-	if err == nil {
-		t.Error("expected error but got nil")
-	}
-}
-
 func TestFlatten(t *testing.T) {
 	for i, tt := range []struct {
 		input  string
