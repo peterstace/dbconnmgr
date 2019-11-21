@@ -2,27 +2,30 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"os"
 )
 
 func main() {
 	tree, err := ParseTree(os.Stdin)
 	if err != nil {
-		log.Fatalf("Could not parse tree: %v", err)
+		fmt.Fprintf(os.Stderr, "Could not parse tree: %v\n", err)
+		os.Exit(1)
 	}
 	connDetails, err := tree.Flatten()
 	if err != nil {
-		log.Fatalf("Could not flatten tree into connection details: %v", err)
+		fmt.Fprintf(os.Stderr, "Could not flatten tree into connection details: %v\n", err)
+		os.Exit(1)
 	}
 
 	selections := connDetails.Selections()
 	choice, ok, err := fzf(selections, ">")
 	if err != nil {
-		log.Fatalf("could not fzf: %v", err)
+		fmt.Fprintf(os.Stderr, "could not fzf: %v\n", err)
+		os.Exit(1)
 	}
 	if !ok {
-		return
+		fmt.Fprintf(os.Stderr, "cancelled\n")
+		os.Exit(130)
 	}
 	for i, sel := range selections {
 		if choice == sel {
